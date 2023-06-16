@@ -22,7 +22,8 @@ RUN apt-get update && apt-get install -y \
     liblapacke-dev \
     pkg-config \
     git \
-    libopenblas-dev
+    libopenblas-dev \
+    libreadline-dev
 
 # Download and extract PHP source code
 WORKDIR /usr/src/php
@@ -48,6 +49,7 @@ RUN ./configure \
     --with-webp \
     --with-xpm \
     --with-freetype \
+    --with-readline \
     --with-zip \
     && make -j$(nproc) \
     && make install
@@ -95,8 +97,8 @@ RUN phpize && \
     make -j$(nproc) && \
     make install
 
-RUN mkdir /usr/local/php/conf.d/
-RUN echo "extension=ndarray.so" > /usr/local/php/conf.d/ndarray.ini
+RUN mkdir /usr/local/php/etc && mkdir /usr/local/php/etc/conf.d
+RUN echo "extension=ndarray.so" > /usr/local/php/etc/conf.d/ndarray.ini
 
 # Start the PHP CLI
 CMD ["/bin/bash"]

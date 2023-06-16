@@ -98,8 +98,8 @@ RUN phpize && \
     make -j$(nproc) && \
     make install
 
-RUN mkdir /usr/local/php/conf.d/
-RUN echo "extension=ndarray.so" > /usr/local/php/conf.d/ndarray.ini
+RUN mkdir /usr/local/php/etc && mkdir /usr/local/php/etc/conf.d
+RUN echo "extension=ndarray.so" > /usr/local/php/etc/conf.d/ndarray.ini
 
 # Start the PHP CLI
 CMD ["/bin/bash"]
