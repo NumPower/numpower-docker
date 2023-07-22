@@ -1,7 +1,7 @@
 # Use a PHP 8 base image
-FROM ubuntu:20.04 as builder
+FROM nvidia/cuda:12.2.0-devel-ubuntu20.04 as builder
 ENV DEBIAN_FRONTEND=noninteractive
-
+# Install CUDA and cuBLAS dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     autoconf \
@@ -21,6 +21,9 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     gnupg
 
+# Install cuBLAS
+RUN apt-get update && apt-get install -y libcublas-11-4
+
 # Install required build dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -37,8 +40,8 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libwebp-dev \
     libxpm-dev \
-    libreadline-dev \
-    libfreetype6-dev
+    libfreetype6-dev \
+    libreadline-dev
 
 # Download and extract PHP source code
 WORKDIR /usr/src/php
@@ -63,15 +66,15 @@ RUN ./configure \
     --with-jpeg \
     --with-webp \
     --enable-gd \
-    --with-readline \
     --with-xpm \
     --with-freetype \
+    --with-readline \
     --with-zip \
     && make -j$(nproc) \
     && make install
 
 # Base image for the final PHP runtime
-FROM ubuntu:20.04 as runtime
+FROM nvidia/cuda:12.2.0-runtime-ubuntu20.04 as runtime
 ENV DEBIAN_FRONTEND=noninteractive
 # Copy the compiled PHP installation from the builder stage
 COPY --from=builder /usr/local/php /usr/local/php
@@ -101,7 +104,9 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libwebp-dev \
     libxpm-dev \
-    libfreetype6-dev
+    libfreetype6-dev \
+    libcublas-12-1 \
+    nvidia-cuda-toolkit
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -136,10 +141,10 @@ RUN git clone https://github.com/NumPower/numpower
 WORKDIR /src/numpower
 
 # Compile NumPower with CUDA enabled
-RUN phpize && ./configure && make install && \
-    mkdir /usr/local/php/etc && mkdir /usr/local/php/etc/conf.d && \
-    echo 'extension=ndarray.so' > /usr/local/php/etc/conf.d/ndarray.ini
+RUN phpize && ./configure --with-cuda && make install-cuda
 
+RUN mkdir -p /usr/local/php/etc && mkdir -p /usr/local/php/etc/conf.d
+RUN echo 'extension=ndarray.so' > /usr/local/php/etc/conf.d/ndarray.ini
 
 # Start the PHP CLI
 CMD ["/bin/bash"]
